@@ -33,5 +33,12 @@ make install
 
 ##Common Carthage Workflow (I'll Show you the ropes kid, show you the ropes!)
 #### Create a cart file with dependencies listed and optionally branch info
+Cart file grammar:
+
 ```bash
+# This is Comment
+# The first keyword is either 'git' for a repository hosted by a non-github server 
+# or 'github' for a repository hosted on github with the format 'github "Username/Repository name" (optional) "[branch name]" OR "== / >= / ~> [VERSION_NUMBER]"
+# '==' and >= mean what you think they mean and '~>' means "Compatible With"
+github "ReactiveCocoa/ReactiveCocoa" "master"
 ```
