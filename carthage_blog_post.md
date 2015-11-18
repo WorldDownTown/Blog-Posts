@@ -24,9 +24,14 @@ Just simply download the appropriate ```carthage.pkg``` from the [Releases Page]
 
 ####Setup Instructions for the Hardcore / Early Adapters 
 If you really want to be on the bleeding edge (and live on the edge a little) you can install the most up to date version 
-by cloneing the master branch and running the make command:
-```bash
+by cloning the master branch and running the make command:
+```shell
 git clone git@github.com:Carthage/Carthage.git
 cd Carthage
 make install
+```
+
+##Common Carthage Workflow (I'll Show you the ropes kid, show you the ropes!)
+#### Create a cart file with dependencies listed and optionally branch info
+```bash
 ```
