@@ -31,14 +31,47 @@ cd Carthage
 make install
 ```
 
-##Common Carthage Workflow (I'll Show you the ropes kid, show you the ropes!)
-#### Create a cart file with dependencies listed and optionally branch info
+##Common Carthage Workflow 
+#### Create a cart file with dependencies listed and optionally branch or version info
 Cart file grammar:
 
 ```bash
-# This is Comment
-# The first keyword is either 'git' for a repository hosted by a non-github server 
-# or 'github' for a repository hosted on github with the format 'github "Username/Repository name" (optional) "[branch name]" OR "== / >= / ~> [VERSION_NUMBER]"
+
+# The first keyword is either 'git' for a repository hosted by anything not github  
+# and 'github' for a repository hosted on github with the format 'github "Username/Repository name" (optional) "[branch name]" OR "== / >= / ~> [VERSION_NUMBER]"
 # '==' and >= mean what you think they mean and '~>' means "Compatible With"
-github "ReactiveCocoa/ReactiveCocoa" "master"
+github "ReactiveCocoa/ReactiveCocoa" "master" #Latest version of the master branch of reactive cocoa
+github "rs/SDWebImage" ~> 3.7 # Version 3.7 and versions compatible with 3.7
+github "realm/realm-cocoa" == 0.96.2 #Only use version 0.96.2
+
 ```
+
+##Carthage commands
+Assuming that all went well with the install step, you now should be able to simply run ```bash carthage bootstrap```
+and watch carthage go through the Cartfile one by one and fetch the frameworks (or build them after fetching from source if using --no-use-binaries)
+Given that this goes without a hitch all that is left to do is to add a new run script phase to your target.
+To do this just simply click on your target in XCode and under the 'Build Phases' tab click the '+' button and select "New Run Script Phase"
+
+Type this in the script section:
+
+```bash 
+/usr/local/bin/carthage copy-frameworks 
+```
+
+And then below the box where you typed the commands to run add an input file per framework that you wish to use.
+
+#Last but not least 
+Once again click on your target and navigate to the General tab, then go to the section ```Linked Frameworks and Libraries``` and add the .frameworks from ```[Project Root]/Carthage/Build/iOS/*``` to your project. 
+
+From this point onward everything should build and run just fine.
+As project requirements change and you wish to add / remove frameworks or upgrade versions just edit the ```Cartfile``` run the command ```carthage update``` and if needed add / remove the frameworks from your project settings.
+
+Its that simple.
+
+#Notes on Source Control
+
+Given that all of your project's thirdparty source and frameworks are located under the ```Carthage/``` folder, in my experience it is much easier to just simply place this folder under source control. 
+The merits of doing so are simple, when cloning the project or switching branches there is no need to run ```carthage bootstrap``` or ```carthage update```. 
+This saves a considerable amount of time and the only expense for doing so is the overall size of the repository will increase. 
+
+
