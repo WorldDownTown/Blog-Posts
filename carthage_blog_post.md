@@ -68,7 +68,7 @@ As project requirements change and you wish to add / remove frameworks or upgrad
 
 Its that simple.
 
-#Notes on Source Control
+#Notes on Source Control with Carthage
 
 Given that all of your project's thirdparty source and frameworks are located under the ```Carthage/``` folder, in my experience it is much easier to just simply place this folder under source control. 
 The merits of doing so are simple, when cloning the project or switching branches there is no need to run ```carthage bootstrap``` or ```carthage update```. 
