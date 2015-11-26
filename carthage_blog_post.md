@@ -46,7 +46,7 @@ github "realm/realm-cocoa" == 0.96.2 #Only use version 0.96.2
 
 ```
 
-##Carthage commands
+##Basic Commands
 Assuming that all went well with the install step, you now should be able to simply run ```bash carthage bootstrap```
 and watch carthage go through the Cartfile one by one and fetch the frameworks (or build them after fetching from source if using --no-use-binaries)
 Given that this goes without a hitch all that is left to do is to add a new run script phase to your target.
