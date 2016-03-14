@@ -108,8 +108,7 @@ while let num = goTillTen.next() {
 ```
 
 Ok great, looks like we got that one in the bag.
-   We pulled off a simple generator that counts from 0 to a number we tell it.
-   Lets go ahead and try to make one for our Unique class.
+   We pulled off a simple generator that counts from 0 to `limit` Lets go ahead and try to make a generator class for our `Unique` type.
 
 ```swift
 
@@ -143,7 +142,25 @@ extension Unique: SequenceType {
 
 Here all we do is implement the generate() method required by SequenceType and return our the custom Generator we wrote.
 Fortunately we really didn't even need to create a `UniqueGenerator` class at all, there already exists a generic generator class that does pretty much the same thing!
-Its called GeneratorOf and we can use it to shorten our implementation like so:
+Its called `anyGenerator` and we can use it to shorten our implementation like so:
+
+```swift
+extension Unique: SequenceType {
+    func generate() -> AnyGenerator<T> {
+        var iteration = 0
+
+        return anyGenerator {
+            if iteration < self.backingStore.count {
+                let result = self.backingStore[iteration]
+                iteration += 1
+                return result
+            }
+
+            return nil
+        }
+    }
+}
+```
 
 
 Now the syntactic sugar of the for - in loop works as expected.
@@ -160,6 +177,10 @@ We also get map and filter functionality at no additional cost since they are pr
 let cnt = mySet.map { Int($0.characters.count) } //[14, 15, 13, 12, 31, 14]
 mySet.filter { $0.characters.first != "A"} //["Petty Parrot", "North American Reckless Raccoon"]
 ```
+
+One of the key things to remember when writing functions that produce generators is that once a Generator is done, its done. No way to revive it so the only thing you can do is call the generate function again to produce a new one, or else your calling code will just get nil on the first run and pass right through.
+
+#Limiting 
 
 
 
