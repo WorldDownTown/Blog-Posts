@@ -1,4 +1,4 @@
-#Making Sequences work for you
+#Making Sequences work for you 
 
 For this post I want to talk about Generators, Sequences and how you can simplify your programming life with them.
 Adopting the SequenceType protocol on a class or struct type that you wish to use with things like for-in loops, map and filter 
@@ -175,12 +175,64 @@ We also get map and filter functionality at no additional cost since they are pr
 
 ```swift
 let cnt = mySet.map { Int($0.characters.count) } //[14, 15, 13, 12, 31, 14]
-mySet.filter { $0.characters.first != "A"} //["Petty Parrot", "North American Reckless Raccoon"]
+mySet.filter { $0.characters.first != "A" } //["Petty Parrot", "North American Reckless Raccoon"]
 ```
 
 One of the key things to remember when writing functions that produce generators is that once a Generator is done, its done. No way to revive it so the only thing you can do is call the generate function again to produce a new one, or else your calling code will just get nil on the first run and pass right through.
 
-#Limiting 
+#Controlling Sequences with Sequences
+Sometimes we have to work with sequences that are larger than we would like, how can we create a new sequence that reads from another sequence but only reads the first `n` elements?
+Say we have an infinite sequence such as "The Pattern" which ossilates between one of two states `0` and `1` it can represent things such as day / night, am / pm, on / off, etc:
+
+```swift
+class ThePattern: SequenceType {
+    func generate() -> AnyGenerator<Int> {
+        var isOne = true
+        return anyGenerator {
+            isOne = !isOne
+            return isOne ? 1 : 0
+        }
+    }
+}
+
+```
+
+The pattern will never stop so it might not be much use to us on its own, lets figure out a way to grab only the first `n` elements.
+
+```swift
+
+class First<S: SequenceType>: SequenceType {
+    
+    private let limit: Int
+    private var counter: Int = 0
+    private var generator: S.Generator
+    
+    init(_ limit: Int, sequence: S) {
+        self.limit = limit
+        self.generator = sequence.generate()
+    }
+    
+    func generate() -> AnyGenerator<S.Generator.Element> {
+        
+        return anyGenerator {
+            defer { self.counter += 1 }
+            guard self.counter < self.limit else { return nil }
+            return self.generator.next()
+        }
+    }
+}
+```
+
+Now we have a safe way to limit the number of elements we will receive without having to check or know in advance just how big the sequence is.
+No matter how big this sequence is, we can safely assume only the first 5 elements will be drawn from it.
+
+```swift
+for item in First(5, sequence: ThePattern()) {
+    print("\(item)\n)) //prints
+}
+```
+
+
 
 
 
