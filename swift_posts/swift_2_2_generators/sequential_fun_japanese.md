@@ -203,8 +203,13 @@ mySet.filter { $0.characters.first != "A" } //["Petty Parrot", "North American R
 
 
 #Controlling Sequences with Sequences
-Sometimes we have to work with sequences that are larger than we would like, how can we create a new sequence that reads from another sequence but only reads the first `n` elements?
-Say we have an infinite sequence such as "The Pattern" which ossilates between one of two states `0` and `1` it can represent things such as day / night, am / pm, on / off, etc:
+偶に無限シーケンスを使いたいけどそのまま使えば永遠にループが止まれられないです。
+どうやってその問題を解決するかというとリミットされるシーケンスを作って無限か大きすぎるシーケンスを入れてリミットを決まってコントロール出来るようになります。
+
+
+例えばこのシーケンスは無限です。
+繰り返すに`0`か`1`を`return`します。
+
 
 ```swift
 class ThePattern: SequenceType {
@@ -219,7 +224,9 @@ class ThePattern: SequenceType {
 
 ```
 
-The pattern will never stop so it might not be much use to us on its own, lets figure out a way to grab only the first `n` elements.
+このパータンは無限ですからリミットしなければならないです。
+先話したリミットクラスを実装しましょう！
+
 
 ```swift
 
@@ -245,8 +252,7 @@ class First<S: SequenceType>: SequenceType {
 }
 ```
 
-Now we have a safe way to limit the number of elements we will receive without having to check or know in advance just how big the sequence is.
-No matter how big this sequence is, we can safely assume only the first 5 elements will be drawn from it.
+いいね！`First(n, sequence: s)`　を呼び出すと`n`まで`s`のエレメントを取れます。`s`は無限だとうしても最初の`n`エレメントしか取らないです。
 
 ```swift
 for item in First(5, sequence: ThePattern()) {
