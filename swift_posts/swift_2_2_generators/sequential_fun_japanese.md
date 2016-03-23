@@ -1,13 +1,12 @@
 #Making Sequences work for you 
 
-今日のトピックはSwift2.0以上のSequenceとSequenceの内部的な動きです。
-カスタム`class`とか`struct`に`Sequence`の`protocol`を採用したら`for in`ループとか`map`,`filter`などを使えるようになります。
+今回のトピックはSwift2.0以降の`SequenceType`というプロトコルと、その内部的な動きについて紹介します。`class`や`struct`を`SequenceType`プロトコルに準拠させると、`for in`ループや`map`, `filter`などを使えるようになります。
 
-さあ、始まりましょう！
+さあ、始めましょう！
 
 ```swift
 struct Unique<T: Comparable> {
-    private var backingStore: [T] = [T]()
+    private var backingStore: [T] = []
 
     var count: Int {
         return backingStore.count
@@ -25,10 +24,9 @@ struct Unique<T: Comparable> {
 }
 ```
 
-この`Unique`というクラスはすごく簡単で色んなデータアイテムを`append`したらそのアイテムがセットに存在してなかったら追加します。
+この`Unique`というクラスはとてもシンプルです。`Comparable`に準拠した型の要素を`append`すると内部的な配列に要素を追加します。配列中に同じ要素が存在する場合は追加しません。
 
-じゃ`Unique`をテストしましょう！
-
+それでは`Unique`をテストしてみましょう！
 
 ```swift
 var mySet = Unique<String>()
@@ -49,22 +47,19 @@ mySet.append("North American Reckless Raccoon")
 mySet.append("A Monadic Mole")
 ```
 
-じゃ動物の名前は十分だと思います。
-ある名前を`print`しようぜ！
+動物は十分入ったので、名前を`print`してみよう！
 
 ```swift
-
 for animal in mySet {
 	println(animal)
 }
 ```
 
-
-あれ？上手く行けなかったね。。。:
+あれ？うまくいきませんね。。。:
 ![]()
 
-なんで上手く行けなかったかというとつまり`for in`は短縮形です。
-`for in`を書くと下記の書き方と一緒に成ります。
+なぜうまくいかなかったかというと、`for in`を使うために必要な実装が足りないからです。
+Stringの配列で`for in`を書くのは、下記の書き方と同じです。
 
 ```swift
 let vowels = ["A","E","I","O","U"]
@@ -73,11 +68,11 @@ var gen = vowels.generate()
 while let letter = gen.next() {
     print(letter)
 }
-
 ```
 
-`Unique`は`SequenceType`protocolを採用してないので動かないです。
-そうして`SequenceType`protocolの必要な条件を見って実装しましょう！
+`generate()`は`SequenceType`プロトコルのメソッドです。
+`Unique`は`SequenceType`プロトコルに準拠してないので`for in`が動かないのです。
+それでは、`SequenceType`プロトコルに必要な条件を見て実装してみましょう！
 
 ```swift
 public protocol SequenceType {
@@ -85,25 +80,27 @@ public protocol SequenceType {
     public func generate() -> Self.Generator
 }
 ```
-`generate()`のリタンタイプで`Generator`のタイプを推論出来るので明確な`typealias Generator = ...`文を書く必要はないです。
 
-今のステップは`SequenceType`protocolを採用して`generate()`関すを実装して`GeneratorType`のオブジェクトを`return`するべきだけどまだ`GeneratorType`を見ってないです。
+`generate()`の戻り値の型は型推論が効くので、`typealias Generator = ...`を書く必要はありません。
 
-そうして`GeneratorType`をチェックしましょう！
+`Unique`を`SequenceType`プロトコルに準拠させて、`generate()`メソッドを実装するべきですが、まだ`GeneratorType`のことをよく知りません。
+それでは`GeneratorType`をチェックしましょう！
 
-## Generator　とは？
+##Generator とは？
+
 ```swift
 public protocol GeneratorType {
     associatedtype Element
     public mutating func next() -> Self.Element?
 }
-
 ```
 
-`SequenceType`と同じように一つの`func`しかないし、`next()`のリタンタイプで`Element`のタイプを推論ができます！
-`Generator`は順番にオブジェクトの持ってるデータをリタンして最後のデータ項目をリタンしたら次に`nil`をリタンします。
-`GeneratorType`を一回使って終わったら再利用出来ないので同じデータセットをもう一回`GeneratorType`で読みたければ新しい`GeneratorType`を使わなければならないです。
-そうして`generate()`を実装する時に`return`された`GeneratorType`と他の`GeneratorType`変数のステートをシエアしないようにしなければならないです。
+`SequenceType`と同じように一つのメソッドしかありません。`next()`の戻り値の型は、`Element`型となっていますが型推論が効きます。`[String]`であれば、実際には`String`になります。
+`Generator`は`next()`メソッドで、保持しているデータを順番に返します。最後のデータを返したあと再度`next()`を呼ぶと`nil`を返します。
+
+`GeneratorType`を使い終わると再利用できません。同じデータセットをもう一度`GeneratorType`で読みたければ、新しく`GeneratorType`を生成する必要があります。
+
+そして、`generate()`を実装する時に戻り値の`GeneratorType`と他の`GeneratorType`変数の状態を共有しないようにしなければいけません。
 
 基本的な上限がある`GeneratorType`:
 
@@ -130,10 +127,9 @@ while let num = goTillTen.next() {
 }
 ```
 
-`SequenceType`と`GeneratorType`を学んだので`Unique`クラスの専用`GeneratorType`を作りましょう！
+`SequenceType`と`GeneratorType`を学んだので、`Unique`専用の`GeneratorType`を作りましょう！
 
 ```swift
-
 class UniqueGenerator<T>: GeneratorType {
     private var _generationMethod: () -> T?
     init(_generationMethod: () -> T?) {
@@ -162,15 +158,15 @@ extension Unique: SequenceType {
 }
 ```
 
-今回はすでに学んだことで`Unique`の`GeneratorType`の実装出来ましたがもうちょっと行数が少ない書き方があります：
-`AnyGenerator`というGenericタイプでもっと短い書き方書けます：
+ここまで学んだことで、`Unique`の`GeneratorType`の実装ができましたが、もう少し短く書けます。
+`AnyGenerator`というGenericタイプを使うと`UniqueGenerator`を作る必要がありません。
 
 ```swift
 extension Unique: SequenceType {
     func generate() -> AnyGenerator<T> {
         var iteration = 0
 
-        return anyGenerator {
+        return AnyGenerator {
             if iteration < self.backingStore.count {
                 let result = self.backingStore[iteration]
                 iteration += 1
@@ -183,7 +179,7 @@ extension Unique: SequenceType {
 }
 ```
 
-もう一度`for in`ルプを書きましょう！
+もう一度`for in`ループを書きましょう！
 
 ```swift
 for item in mySet {
@@ -191,10 +187,9 @@ for item in mySet {
 }
 ```
 
-今回やっと出来ました！
+やっと動きました！
 
-`map`と`filter`も動いてる！
-やった！
+`map`と`filter`も動きます！やった！
 
 ```swift
 let cnt = mySet.map { Int($0.characters.count) } //[14, 15, 13, 12, 31, 14]
@@ -203,64 +198,58 @@ mySet.filter { $0.characters.first != "A" } //["Petty Parrot", "North American R
 
 
 #Controlling Sequences with Sequences
-偶に無限シーケンスを使いたいけどそのまま使えば永遠にループが止まれられないです。
-どうやってその問題を解決するかというとリミットされるシーケンスを作って無限か大きすぎるシーケンスを入れてリミットを決まってコントロール出来るようになります。
 
+`SequenceType`の実装次第で、とても大きいリストや無限リストを作ることができます。
+そういったリストから先頭から`n`個取り出そうとすると、そのまま使うと無限ループになってしまいます。
 
-例えばこのシーケンスは無限です。
-繰り返すに`0`か`1`を`return`します。
-
+例えば下記の`ThePattern`は無限リストです。
+`for in`で使うと、`Generator`が`nil`を返さないため、永遠に`0`か`1`を返します。
 
 ```swift
 class ThePattern: SequenceType {
     func generate() -> AnyGenerator<Int> {
         var isOne = true
-        return anyGenerator {
+        return AnyGenerator {
             isOne = !isOne
             return isOne ? 1 : 0
         }
     }
 }
 
+// 無限ループ
+for i in ThePattern() {
+    print(i)
+}
 ```
 
-このパータンは無限ですからリミットしなければならないです。
-先話したリミットクラスを実装しましょう！
-
+この無限リストから
 
 ```swift
-
 class First<S: SequenceType>: SequenceType {
-    
+
     private let limit: Int
     private var counter: Int = 0
     private var generator: S.Generator
-    
+
     init(_ limit: Int, sequence: S) {
         self.limit = limit
         self.generator = sequence.generate()
     }
-    
+
     func generate() -> AnyGenerator<S.Generator.Element> {
-        
-        return anyGenerator {
+        return AnyGenerator {
             defer { self.counter += 1 }
             guard self.counter < self.limit else { return nil }
             return self.generator.next()
         }
     }
 }
-```
 
-いいね！`First(n, sequence: s)`　を呼び出すと`n`まで`s`のエレメントを取れます。`s`は無限だとうしても最初の`n`エレメントしか取らないです。
-
-```swift
 for item in First(5, sequence: ThePattern()) {
-    print("\(item)\n)) //prints
+    print(item) // 0 1 0 1 0
 }
 ```
 
-
-
-
-
+いいですね！
+`First(n, sequence: s)` を呼び出すと、`s`の先頭`n`個の要素を取り出せます。
+`s`が無限リストだとしても最初の`n`個しかチェックしないので効率的です。
