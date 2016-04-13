@@ -1,49 +1,95 @@
 #[fit]ReactiveCocoa入門
+Signals, SignalProducers and Events! Oh my!
 
 ---
 
-#FRPはどんな問題を解決しますか？
-FRPじゃないiOSアプリの中で色んなパターンが有って：
-
-- UIKitのIBActionメソッド
-- NSNotificationCenter
-- Delegate Pattern
-- Callbacks
+###自己紹介
+VasilyのiOSエンジニアにこらすと申します。
+最近Swift Evolution SE-0053を提案してSwift3.0に入りました。
+偶にOSSとかSwift Evolutionに貢献するので興味が有れば github.com/**nirma**
+とかtwitterで[@din0sr](https://twitter.com/din0sr)でフォローしてください。
 
 ---
 
-#IBActionの欠陥
-
-UIイベントがある時に一つのメソッドに入ってそのメソッドの中に色んなオブジェクトに
-イベント情報を送ります。
-
----
-
-###例:「購入」ボタンを押して `purchaseButtonClicked`という`IBAction`メソッド呼ばれたら： 
-
-
-1. データモデルを更新
-
-2. 購入ボタンの見た目を更新して
-
-3. ローディングスピナーを表示して
-
-4. ネットワークリクエストを始めって
-
-5. リクエストが完了したらCallbackでUIとモデルを更新する
+###FRP(Functional Reactive Programming)のメリットとは？
+* コードノイズ減ります
+* IBAction, NSNotificationCenterおよびCallback/Delegateのパターンにはもっとシンプルな設計でSignalとイベントのパターンで書けます。
 
 ---
 
-#問題とは？ 
+###例: リフレッシュボタンのクリックイベント (MVCとFRPではないの場合)
 
-上記の*イベント*に対して５つのステップがあるけど３つのステップはUIに関係ないのに
-IBActionメソッドの中からそのコードが書いてあります。
+```swift
 
-実は購入すると言うユーザーアクションはUIで検出するけどその時点の後にネットワークとモデルコードを独立した方がいいと思います。
+   @IBAction private func refreshButtonClicked(sender: AnyObject) {
+   updateViewForState(.Loading)
+   performNetworkRequest() { 
+   		updateModel()
+   		dispatch_async(dispatch_get_main_queue()) {
+       	updateViewForState(.Success)
+       }
+   }
+   
+ }
+ 
+ ```
+ 
+---
+
+#OOP+MVCの問題点: Case Study
+一つずつ順番にコードで命令型っぽい感じで「どうやってタスクAをする」というコードを書けなければいけないので順番ではないです。
+もっとコンサイスなコードを書きたいです。
+
+---
+
+今の書き方をロープの書き方に比べたらこんな感じになると思います。
+```swift
+	var counter = 0 
+	var animationImages = [UIImage]()
+	
+	while counter < 10 {
+		let imageString = "animation_image_\(counter)"
+		if let image = UIImage(named: imageString) {
+			animationImages += [image]
+		}
+	}
+```
+
+---
+
+こういう風にVCかVMのコード書きたいです：
+
+```swift
+(0..<10).flatMap { UIImage(named: "animation_image_\($0)") }
+```
+
+---
+
+
+###例:ボタンを押して `refreshButtonClicked`という`IBAction`メソッド呼ばれたら： 
+
+
+1. ボタンの見た目を更新して
+
+2. ローディングスピナーを表示して
+
+3. ネットワークリクエストを始めって
+
+4. リクエストが完了したらCallbackでUIとモデルを更新する
 
 ---
 
 # [fit] **RAC** FTW!
+
+# ReactiveCocoaとRxの違おうところ
+
+- Naming Convention (Hot Signal = Signal, Cold Signal = SignalProducer)
+  
+- Cocoa専用API拡張
+
+- もっとシムプル設計
+
+- etc 
 
 ---
 
@@ -53,7 +99,6 @@ IBActionメソッドの中からそのコードが書いてあります。
 
 #　YES, Signals!
 
-エベントを送りたいけどどういう仕組みでエベント送ると受けてれますか？
 `Signal`でイベントを受け取って`Observer`とか`Disposable`でSignal操作が出来ます。
 
 ---
@@ -81,7 +126,7 @@ public enum Event<Value, Error : ErrorType> {
 
 ---
 
-#Signals...
+#Signals, cheap, 
 
 すでに起こっているイベントストリーム
 
@@ -126,20 +171,10 @@ public enum Event<Value, Error : ErrorType> {
 
 ---
 
-# ReactiveCocoaとRxの違おうところ
-
-- Naming Convention (Hot Signal = Signal, Cold Signal = SignalProducer)
-  
-- Cocoa専用API拡張
-
-- もっとシムプル設計
-
-
----
 
 ### Signal's friends map, filter, reduce
 
-http://neilpa.me/rac-marbles/
+[RAC Marbles](http://neilpa.me/rac-marbles/)
 
 ---
 
@@ -165,7 +200,7 @@ http://neilpa.me/rac-marbles/
 
 ---
 
-### 新しいSignalを作成
+### 既存Signalから新しいSignalを作る
 
 ```swift
         let (userNameTextSignal, observer) = Signal<String, NoError>.pipe()
@@ -274,10 +309,29 @@ var userNameProducer = SignalProducer<String, NoError> { (observer, disposable) 
 		Sending Username: fizz
 		Received Username: fizz
 	*/
+```
 
 ---
 
+### レガシィRACとRAC4のAPI変更
 
+- RACSignalが無く成りました。（This is a lie.）
+- RAC3.0からRACSignal(HOTとCOLD)SignalとSignalProducer
+- ~~Global Functions~~ `Protocol Extensions`
+- `|>`(Pipe-Left)は普通の「Dot Operator」に成りました
+
+まだ`RACSignal`タイプリタンしてるメソッドが多いけど`.toSigna`
+```swift
+searchBox.rac_textSignal().toSignalProducer()
+```
+[RAC change log](https://github.com/ReactiveCocoa/ReactiveCocoa/blob/master/CHANGELOG.md)
+
+---
+
+### まとめ
+- RAC4はいいFRPライブラリーとして設計が良くって、コミュニティもうヘルシーし、進化も早いけどまとめだRACSignalとがレガシィシィコードが残ってるから'5/5'を上げられないです。
+- Cocoaの拡張は便利けどちょっと肥大化
+- Learning Curve is steep
 
 
 
